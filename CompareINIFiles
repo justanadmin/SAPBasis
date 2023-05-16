@@ -24,12 +24,14 @@ echo "Number of files in target directory: $num_target_files"
 echo ""
 
 # Check for files in source that are not present in target
+missing_files=()
 for source_file in "${source_files[@]}"; do
   file_name=$(basename "$source_file")
   target_file="$target_path/$file_name"
 
   if [[ ! -f $target_file ]]; then
     echo "File not found in target: $file_name"
+    missing_files+=("$file_name")
     echo ""
   fi
 done
@@ -44,15 +46,12 @@ for source_file in "${source_files[@]}"; do
     echo "---------------------------------------------"
     echo "File: $file_name"
     echo "-------------------"
-    section=""
     while IFS='=' read -r key value || [[ -n $key ]]; do
       if [[ $key ]]; then
+        section=$(awk -F'[][]' '/^\[.*\]/ {print $2}' "$source_file")
         target_value=$(awk -F= -v k="$key" '$1 == k {print $2}' "$target_file")
         if [[ $value != "$target_value" ]]; then
-          if [[ -z $section ]]; then
-            section=$(awk -F'[][]' '/^\[.*\]/ {print $2}' "$source_file")
-            echo "Section: $section"
-          fi
+          echo "   Section: $section"
           echo "   Parameter: $key"
           echo "      Source: $value"
           echo "      Target: $target_value"
@@ -63,4 +62,21 @@ for source_file in "${source_files[@]}"; do
     echo "---------------------------------------------"
     echo ""
   fi
+done
+
+# Display missing files with their sections and parameters
+for missing_file in "${missing_files[@]}"; do
+  echo "Missing file: $missing_file"
+  echo "-------------------"
+  while IFS='=' read -r key value || [[ -n $key ]]; do
+    if [[ $key ]]; then
+      section=$(awk -F'[][]' '/^\[.*\]/ {print $2}' "$source_path/$missing_file")
+      echo "   Section: $section"
+      echo "   Parameter: $key"
+      echo "      Source: $value"
+      echo ""
+    fi
+  done < "$source_path/$missing_file"
+  echo "-------------------"
+  echo ""
 done
