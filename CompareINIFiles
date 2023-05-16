@@ -18,6 +18,8 @@ for source_file in "$source_path"/*.ini; do
   target_file="$target_path/$file_name"
 
   if [[ -f $target_file ]]; then
+    echo "Comparing file: $file_name with $(basename $target_file)"
+    echo "---------------------------------------------"
     echo "File: $file_name"
     echo "-------------------"
     section=""
@@ -36,7 +38,10 @@ for source_file in "$source_path"/*.ini; do
         fi
       fi
     done < "$source_file"
+    echo "---------------------------------------------"
+    echo ""
   else
     echo "Target file not found: $target_file"
+    echo ""
   fi
 done
