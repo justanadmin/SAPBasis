@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 source_path="$1"
 target_path="$2"
@@ -13,7 +13,29 @@ if [[ ! -d $source_path || ! -d $target_path ]]; then
   exit 1
 fi
 
-for source_file in "$source_path"/*.ini; do
+source_files=("$source_path"/*.ini)
+target_files=("$target_path"/*.ini)
+
+num_source_files=${#source_files[@]}
+num_target_files=${#target_files[@]}
+
+echo "Number of files in source directory: $num_source_files"
+echo "Number of files in target directory: $num_target_files"
+echo ""
+
+# Check for files in source that are not present in target
+for source_file in "${source_files[@]}"; do
+  file_name=$(basename "$source_file")
+  target_file="$target_path/$file_name"
+
+  if [[ ! -f $target_file ]]; then
+    echo "File not found in target: $file_name"
+    echo ""
+  fi
+done
+
+# Compare files in source and target directories
+for source_file in "${source_files[@]}"; do
   file_name=$(basename "$source_file")
   target_file="$target_path/$file_name"
 
@@ -39,9 +61,6 @@ for source_file in "$source_path"/*.ini; do
       fi
     done < "$source_file"
     echo "---------------------------------------------"
-    echo ""
-  else
-    echo "Target file not found: $target_file"
     echo ""
   fi
 done
