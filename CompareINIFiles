@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 source_path="$1"
 target_path="$2"
@@ -18,12 +18,17 @@ for source_file in "$source_path"/*.ini; do
   target_file="$target_path/$file_name"
 
   if [[ -f $target_file ]]; then
+    echo "File: $file_name"
+    section=""
     while IFS='=' read -r key value || [[ -n $key ]]; do
       if [[ $key ]]; then
         target_value=$(awk -F= -v k="$key" '$1 == k {print $2}' "$target_file")
         if [[ $value != "$target_value" ]]; then
-          echo "Parameter mismatch in files: $source_file and $target_file"
-          echo "Mismatched parameter: $key"
+          if [[ -z $section ]]; then
+            section=$(awk -F'[][]' '/^\[.*\]/ {print $2}' "$source_file")
+            echo "Section: $section"
+          fi
+          echo "Parameter: $key"
           echo "Source value: $value"
           echo "Target value: $target_value"
           echo "-------------------"
