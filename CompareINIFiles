@@ -19,6 +19,7 @@ for source_file in "$source_path"/*.ini; do
 
   if [[ -f $target_file ]]; then
     echo "File: $file_name"
+    echo "-------------------"
     section=""
     while IFS='=' read -r key value || [[ -n $key ]]; do
       if [[ $key ]]; then
@@ -28,10 +29,10 @@ for source_file in "$source_path"/*.ini; do
             section=$(awk -F'[][]' '/^\[.*\]/ {print $2}' "$source_file")
             echo "Section: $section"
           fi
-          echo "Parameter: $key"
-          echo "Source value: $value"
-          echo "Target value: $target_value"
-          echo "-------------------"
+          echo "   Parameter: $key"
+          echo "      Source: $value"
+          echo "      Target: $target_value"
+          echo ""
         fi
       fi
     done < "$source_file"
