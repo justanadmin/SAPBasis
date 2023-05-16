@@ -1,0 +1,12 @@
+The script compares the parameter names and values in a set of INI files.
+It accepts two directory paths: the source directory and the target directory.
+It iterates through the source files and compares them with corresponding files in the target directory.
+For each parameter, it checks if the value in the source file matches the value in the target file.
+If a mismatch is found, it displays the filenames, the mismatched parameter, and the source and target values.
+The script helps identify differing parameter values between INI files.
+It is useful for configuration file analysis and troubleshooting.
+Ensure the source and target directories contain the INI files you want to compare.
+Run the script with ./compare_ini.sh <source_directory_path> <target_directory_path>.
+Review the output to identify parameter mismatches between the source and target files.
+
+./compare_ini.sh <source_directory_path> <target_directory_path>
