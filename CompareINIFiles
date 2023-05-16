@@ -1,42 +1,36 @@
 #!/bin/bash
 
-while [[ $# -gt 0 ]]; do
-  key="$1"
+source_path="$1"
+target_path="$2"
 
-  case $key in
-    -source)
-      file1="$2"
-      shift
-      shift
-      ;;
-    -target)
-      file2="$2"
-      shift
-      shift
-      ;;
-    *)
-      echo "Unknown option: $key"
-      exit 1
-      ;;
-  esac
-done
-
-if [[ -z $file1 || -z $file2 ]]; then
-  echo "Usage: ./compare_ini.sh -source <file1.ini> -target <file2.ini>"
+if [[ -z $source_path || -z $target_path ]]; then
+  echo "Usage: ./compare_ini.sh <source_directory_path> <target_directory_path>"
   exit 1
 fi
 
-while IFS='=' read -r key1 value1 || [[ -n $key1 ]]; do
-  if [[ $key1 ]]; then
-    while IFS='=' read -r key2 value2 || [[ -n $key2 ]]; do
-      if [[ $key2 ]]; then
-        if [[ $key1 == "$key2" && $value1 == "$value2" ]]; then
-          break
+if [[ ! -d $source_path || ! -d $target_path ]]; then
+  echo "Invalid directory path(s). Please provide valid paths for source and target directories."
+  exit 1
+fi
+
+for source_file in "$source_path"/*.ini; do
+  file_name=$(basename "$source_file")
+  target_file="$target_path/$file_name"
+
+  if [[ -f $target_file ]]; then
+    while IFS='=' read -r key value || [[ -n $key ]]; do
+      if [[ $key ]]; then
+        target_value=$(awk -F= -v k="$key" '$1 == k {print $2}' "$target_file")
+        if [[ $value != "$target_value" ]]; then
+          echo "Parameter mismatch in files: $source_file and $target_file"
+          echo "Mismatched parameter: $key"
+          echo "Source value: $value"
+          echo "Target value: $target_value"
+          echo "-------------------"
         fi
       fi
-    done < "$file2"
-    if [[ $key2 != "$key1" || $value2 != "$value1" ]]; then
-      echo "Parameter mismatch: $key1"
-    fi
+    done < "$source_file"
+  else
+    echo "Target file not found: $target_file"
   fi
-done < "$file1"
+done
