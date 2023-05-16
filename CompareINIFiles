@@ -1,0 +1,42 @@
+#!/bin/bash
+
+while [[ $# -gt 0 ]]; do
+  key="$1"
+
+  case $key in
+    -source)
+      file1="$2"
+      shift
+      shift
+      ;;
+    -target)
+      file2="$2"
+      shift
+      shift
+      ;;
+    *)
+      echo "Unknown option: $key"
+      exit 1
+      ;;
+  esac
+done
+
+if [[ -z $file1 || -z $file2 ]]; then
+  echo "Usage: ./compare_ini.sh -source <file1.ini> -target <file2.ini>"
+  exit 1
+fi
+
+while IFS='=' read -r key1 value1 || [[ -n $key1 ]]; do
+  if [[ $key1 ]]; then
+    while IFS='=' read -r key2 value2 || [[ -n $key2 ]]; do
+      if [[ $key2 ]]; then
+        if [[ $key1 == "$key2" && $value1 == "$value2" ]]; then
+          break
+        fi
+      fi
+    done < "$file2"
+    if [[ $key2 != "$key1" || $value2 != "$value1" ]]; then
+      echo "Parameter mismatch: $key1"
+    fi
+  fi
+done < "$file1"
