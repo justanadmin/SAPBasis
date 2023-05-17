@@ -1,0 +1,53 @@
+#!/bin/bash
+
+source_file="$1"
+target_file="$2"
+
+if [[ -z $source_file || -z $target_file ]]; then
+  echo "Usage: ./compare_ini.sh <source_file> <target_file>"
+  exit 1
+fi
+
+if [[ ! -f $source_file || ! -f $target_file ]]; then
+  echo "Invalid file path(s). Please provide valid paths for source and target files."
+  exit 1
+fi
+
+echo "Comparing parameters and values in $source_file and $target_file"
+
+echo "Parameters and values that do not match:"
+while IFS='=' read -r source_key source_value || [[ -n $source_key ]]; do
+  if [[ $source_key ]]; then
+    target_value=$(awk -F= -v k="$source_key" '$1 == k {print $2}' "$target_file")
+    if [[ $source_value != "$target_value" ]]; then
+      echo "Parameter: $source_key"
+      echo "Source value: $source_value"
+      echo "Target value: $target_value"
+      echo "-------------------"
+    fi
+  fi
+done < "$source_file"
+
+echo "Parameters and values present in source but not in target:"
+while IFS='=' read -r source_key source_value || [[ -n $source_key ]]; do
+  if [[ $source_key ]]; then
+    target_value=$(awk -F= -v k="$source_key" '$1 == k {print $2}' "$target_file")
+    if [[ -z $target_value ]]; then
+      echo "Parameter: $source_key"
+      echo "Source value: $source_value"
+      echo "-------------------"
+    fi
+  fi
+done < "$source_file"
+
+echo "Parameters and values present in target but not in source:"
+while IFS='=' read -r target_key target_value || [[ -n $target_key ]]; do
+  if [[ $target_key ]]; then
+    source_value=$(awk -F= -v k="$target_key" '$1 == k {print $2}' "$source_file")
+    if [[ -z $source_value ]]; then
+      echo "Parameter: $target_key"
+      echo "Target value: $target_value"
+      echo "-------------------"
+    fi
+  fi
+done < "$target_file"
