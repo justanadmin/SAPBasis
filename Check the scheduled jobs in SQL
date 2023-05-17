@@ -1,0 +1,31 @@
+USE msdb;
+
+SELECT 
+    j.name AS 'JobName',
+    s.enabled AS 'IsEnabled',
+    j.description AS 'Description',
+    s.schedule_id AS 'ScheduleID',
+    s.name AS 'ScheduleName',
+    s.freq_type AS 'FrequencyType',
+    s.freq_interval AS 'FrequencyInterval',
+    s.freq_subday_type AS 'FrequencySubdayType',
+    s.freq_subday_interval AS 'FrequencySubdayInterval',
+    s.freq_relative_interval AS 'FrequencyRelativeInterval',
+    s.freq_recurrence_factor AS 'FrequencyRecurrenceFactor',
+    s.active_start_date AS 'ActiveStartDate',
+    s.active_end_date AS 'ActiveEndDate',
+    s.active_start_time AS 'ActiveStartTime',
+    s.active_end_time AS 'ActiveEndTime',
+    s.next_run_date AS 'NextRunDate',
+    s.next_run_time AS 'NextRunTime',
+    j.date_created AS 'DateCreated',
+    j.date_modified AS 'DateModified',
+    j.date_last_run AS 'DateLastRun',
+    j.date_next_run AS 'DateNextRun',
+    j.enabled AS 'JobEnabled'
+FROM 
+    sysjobs j
+INNER JOIN 
+    sysjobschedules js ON j.job_id = js.job_id
+INNER JOIN 
+    sysschedules s ON js.schedule_id = s.schedule_id;
