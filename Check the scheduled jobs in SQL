@@ -1,31 +1,24 @@
 USE msdb;
 
-SELECT 
+SELECT
     j.name AS 'JobName',
-    s.enabled AS 'IsEnabled',
-    j.description AS 'Description',
-    s.schedule_id AS 'ScheduleID',
+    h.run_status AS 'RunStatus',
+    h.run_date AS 'LastRunDate',
+    h.run_time AS 'LastRunTime',
     s.name AS 'ScheduleName',
-    s.freq_type AS 'FrequencyType',
-    s.freq_interval AS 'FrequencyInterval',
-    s.freq_subday_type AS 'FrequencySubdayType',
-    s.freq_subday_interval AS 'FrequencySubdayInterval',
-    s.freq_relative_interval AS 'FrequencyRelativeInterval',
-    s.freq_recurrence_factor AS 'FrequencyRecurrenceFactor',
-    s.active_start_date AS 'ActiveStartDate',
-    s.active_end_date AS 'ActiveEndDate',
-    s.active_start_time AS 'ActiveStartTime',
-    s.active_end_time AS 'ActiveEndTime',
     s.next_run_date AS 'NextRunDate',
-    s.next_run_time AS 'NextRunTime',
-    j.date_created AS 'DateCreated',
-    j.date_modified AS 'DateModified',
-    j.date_last_run AS 'DateLastRun',
-    j.date_next_run AS 'DateNextRun',
-    j.enabled AS 'JobEnabled'
-FROM 
+    s.next_run_time AS 'NextRunTime'
+FROM
     sysjobs j
-INNER JOIN 
+INNER JOIN
+    sysjobhistory h ON j.job_id = h.job_id
+INNER JOIN
     sysjobschedules js ON j.job_id = js.job_id
-INNER JOIN 
-    sysschedules s ON js.schedule_id = s.schedule_id;
+INNER JOIN
+    sysschedules s ON js.schedule_id = s.schedule_id
+WHERE
+    j.enabled = 1 -- Only enabled jobs
+    AND h.step_id = 0 -- Step 0 represents the entire job
+    AND h.run_status = 1 -- Only successful runs
+ORDER BY
+    h.run_date DESC, h.run_time DESC;
