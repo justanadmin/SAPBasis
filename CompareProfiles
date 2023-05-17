@@ -2,9 +2,10 @@
 
 source_file="$1"
 target_file="$2"
+ignore_hash="$3"
 
 if [[ -z $source_file || -z $target_file ]]; then
-  echo "Usage: ./compare_ini.sh <source_file> <target_file>"
+  echo "Usage: ./compare_ini.sh <source_file> <target_file> [ignorehash]"
   exit 1
 fi
 
@@ -13,41 +14,58 @@ if [[ ! -f $source_file || ! -f $target_file ]]; then
   exit 1
 fi
 
+if [[ -n $ignore_hash && $ignore_hash != "ignorehash" ]]; then
+  echo "Invalid option for ignorehash. Please use 'ignorehash' if you want to ignore parameters starting with a hash."
+  exit 1
+fi
+
+declare -A source_params
+declare -A target_params
+
+while IFS='=' read -r key value || [[ -n $key ]]; do
+  if [[ $key ]]; then
+    if [[ -n $ignore_hash && $key == \#* ]]; then
+      continue
+    fi
+    source_params["$key"]=$value
+  fi
+done < "$source_file"
+
+while IFS='=' read -r key value || [[ -n $key ]]; do
+  if [[ $key ]]; then
+    if [[ -n $ignore_hash && $key == \#* ]]; then
+      continue
+    fi
+    target_params["$key"]=$value
+  fi
+done < "$target_file"
+
 echo "Comparing parameters and values in $source_file and $target_file"
 
 echo "Parameters and values that do not match:"
-while IFS='=' read -r source_key source_value || [[ -n $source_key ]]; do
-  if [[ $source_key ]]; then
-    target_value=$(awk -F= -v k="$source_key" '$1 == k {print $2}' "$target_file")
-    if [[ $source_value != "$target_value" ]]; then
-      echo "Parameter: $source_key"
-      echo "Source value: $source_value"
-      echo "Target value: $target_value"
-      echo "-------------------"
-    fi
+for key in "${!source_params[@]}"; do
+  if [[ ${target_params["$key"]} != "${source_params["$key"]}" ]]; then
+    echo "Parameter: $key"
+    echo "Source value: ${source_params["$key"]}"
+    echo "Target value: ${target_params["$key"]}"
+    echo "-------------------"
   fi
-done < "$source_file"
+done
 
-echo "Parameters and values present in source but not in target:"
-while IFS='=' read -r source_key source_value || [[ -n $source_key ]]; do
-  if [[ $source_key ]]; then
-    target_value=$(awk -F= -v k="$source_key" '$1 == k {print $2}' "$target_file")
-    if [[ -z $target_value ]]; then
-      echo "Parameter: $source_key"
-      echo "Source value: $source_value"
-      echo "-------------------"
-    fi
+echo "Parameters and values present in $source_file but not in $target_file:"
+for key in "${!source_params[@]}"; do
+  if [[ -z ${target_params["$key"]} ]]; then
+    echo "Parameter: $key"
+    echo "Source value: ${source_params["$key"]}"
+    echo "-------------------"
   fi
-done < "$source_file"
+done
 
-echo "Parameters and values present in target but not in source:"
-while IFS='=' read -r target_key target_value || [[ -n $target_key ]]; do
-  if [[ $target_key ]]; then
-    source_value=$(awk -F= -v k="$target_key" '$1 == k {print $2}' "$source_file")
-    if [[ -z $source_value ]]; then
-      echo "Parameter: $target_key"
-      echo "Target value: $target_value"
-      echo "-------------------"
-    fi
+echo "Parameters and values present in $target_file but not in $source_file:"
+for key in "${!target_params[@]}"; do
+  if [[ -z ${source_params["$key"]} ]]; then
+    echo "Parameter: $key"
+    echo "Target value: ${target_params["$key"]}"
+    echo "-------------------"
   fi
-done < "$target_file"
+done
