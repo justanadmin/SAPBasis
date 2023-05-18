@@ -1,4 +1,4 @@
-USE YourDatabaseName; -- Replace "YourDatabaseName" with the actual name of your database
+USE Students; -- Replace "YourDatabaseName" with the actual name of your database
 
 DECLARE @schemaName NVARCHAR(128) = 'dbo';
 DECLARE @tableName NVARCHAR(128);
@@ -14,6 +14,11 @@ FETCH NEXT FROM tableCursor INTO @tableName;
 
 WHILE @@FETCH_STATUS = 0
 BEGIN
+    -- Disable foreign key constraints for the table
+    SET @sql = 'ALTER TABLE ' + QUOTENAME(@schemaName) + '.' + QUOTENAME(@tableName) + ' NOCHECK CONSTRAINT all';
+    EXEC sp_executesql @sql;
+
+    -- Drop the table
     SET @sql = 'DROP TABLE ' + QUOTENAME(@schemaName) + '.' + QUOTENAME(@tableName);
     EXEC sp_executesql @sql;
 
