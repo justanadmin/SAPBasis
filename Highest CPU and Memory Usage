@@ -1,0 +1,15 @@
+SELECT
+    DB_NAME(r.database_id) AS DatabaseName,
+    r.total_worker_time AS CPUUsage,
+    r.total_elapsed_time AS ElapsedTime,
+    r.logical_reads AS LogicalReads,
+    r.memory_usage AS MemoryUsage,
+    t.text AS QueryText
+FROM
+    sys.dm_exec_requests r
+CROSS APPLY
+    sys.dm_exec_sql_text(r.sql_handle) t
+ORDER BY
+    r.memory_usage DESC,
+    r.total_worker_time DESC,
+    r.total_elapsed_time DESC
