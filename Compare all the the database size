@@ -1,0 +1,70 @@
+#!/bin/bash
+
+# Input file paths
+source_file="source.txt"
+target_file="target.txt"
+
+# Output file path
+output_file="table_size_difference.txt"
+
+# Function to calculate size difference
+calculate_difference() {
+  local source_size="$1"
+  local target_size="$2"
+  
+  # Convert sizes to bytes
+  local source_bytes=$(($source_size * 1024))
+  local target_bytes=$(($target_size * 1024))
+  
+  # Calculate the difference in bytes
+  local difference_bytes=$(($source_bytes - $target_bytes))
+  
+  # Convert difference to appropriate units (KB, MB, GB)
+  if [ $difference_bytes -lt 0 ]; then
+    local difference=$(echo "scale=2; $difference_bytes / 1024 / 1024 / 1024" | bc)
+    local difference_unit="GB"
+  elif [ $difference_bytes -lt 1024 ]; then
+    local difference=$(echo "scale=2; $difference_bytes / 1024" | bc)
+    local difference_unit="KB"
+  elif [ $difference_bytes -lt 1048576 ]; then
+    local difference=$(echo "scale=2; $difference_bytes / 1024 / 1024" | bc)
+    local difference_unit="MB"
+  else
+    local difference=$(echo "scale=2; $difference_bytes / 1024 / 1024 / 1024" | bc)
+    local difference_unit="GB"
+  fi
+  
+  echo "$difference$difference_unit"
+}
+
+# Check if input files exist
+if [ ! -f "$source_file" ] || [ ! -f "$target_file" ]; then
+  echo "Input files not found."
+  exit 1
+fi
+
+# Create the output file
+echo "Table\tSize Difference" > "$output_file"
+
+# Read and process each line from the source file
+while read -r source_line; do
+  # Extract source information
+  source_schema=$(echo "$source_line" | cut -f1)
+  source_table=$(echo "$source_line" | cut -f2)
+  source_total_size_kb=$(echo "$source_line" | cut -f3)
+  
+  # Read and process corresponding line from the target file
+  target_line=$(grep -P "^$source_schema\t$source_table\t" "$target_file")
+  if [ -n "$target_line" ]; then
+    # Extract target information
+    target_total_size_kb=$(echo "$target_line" | cut -f3)
+    
+    # Calculate the size difference
+    size_difference=$(calculate_difference $source_total_size_kb $target_total_size_kb)
+    
+    # Append the difference to the output file
+    echo "$source_schema.$source_table\t$size_difference" >> "$output_file"
+  fi
+done < "$source_file"
+
+echo "Table size difference file generated: $output_file"
