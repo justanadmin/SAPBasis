@@ -48,6 +48,8 @@ echo "Table\tSize Difference" > "$output_file"
 
 # Read and process each line from the source file
 while read -r source_line; do
+  echo "Reading source line: $source_line"
+  
   # Extract source information
   source_schema=$(echo "$source_line" | cut -f1)
   source_table=$(echo "$source_line" | cut -f2)
@@ -56,6 +58,8 @@ while read -r source_line; do
   # Read and process corresponding line from the target file
   target_line=$(grep -P "^$source_schema\t$source_table\t" "$target_file")
   if [ -n "$target_line" ]; then
+    echo "Reading target line: $target_line"
+    
     # Extract target information
     target_total_size_kb=$(echo "$target_line" | cut -f3)
     
