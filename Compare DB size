@@ -1,0 +1,80 @@
+#!/bin/bash
+
+# Input file paths
+source_file="source.txt"
+target_file="target.txt"
+
+# Output file path
+output_file="table_size_difference.txt"
+
+# Function to calculate size in GB
+calculate_size_gb() {
+  local size_kb="$1"
+  
+  # Convert size to GB
+  local size_gb=$(echo "scale=2; $size_kb / 1024 / 1024" | bc)
+  
+  echo "$size_gb"
+}
+
+# Check if input files exist
+if [ ! -f "$source_file" ]; then
+  echo "Source file not found."
+  exit 1
+fi
+
+if [ ! -f "$target_file" ]; then
+  echo "Target file not found."
+  exit 1
+fi
+
+# Create the output file
+echo "Table\tSource Size (GB)\tTarget Size (GB)\tSize Difference (GB)" > "$output_file"
+
+# Read the source file line by line
+while IFS=$'\t' read -r source_schema source_table; do
+  echo "Reading source line: $source_schema $source_table"
+  
+  # Get the size of the source table
+  source_size_kb=$(db2 -x "SELECT (DATA_OBJECT_P_SIZE + INDEX_OBJECT_P_SIZE + LONG_OBJECT_P_SIZE + LOB_OBJECT_P_SIZE + XML_OBJECT_P_SIZE) / (1024*1024) FROM SYSIBMADM.ADMINTABINFO WHERE TABSCHEMA = '$source_schema' AND TABNAME = '$source_table'")
+  source_size_gb=$(calculate_size_gb "$source_size_kb")
+  
+  echo "Source Size (GB): $source_size_gb"
+  
+  # Check if the source schema exists in the target file
+  target_schema_exists=$(grep -w "$source_schema" "$target_file")
+  
+  if [ -n "$target_schema_exists" ]; then
+    echo "Target schema found: $source_schema"
+    
+    # Check if the target table exists in the target schema
+    target_table_exists=$(grep -w "$source_table" "$target_file")
+    
+    if [ -n "$target_table_exists" ]; then
+      echo "Target table found: $source_table"
+      
+      # Get the size of the target table from the target file
+      target_size_gb=$(grep -w "$source_table" "$target_file" | awk -F'\t' '{print $3}')
+      
+      echo "Target Size (GB): $target_size_gb"
+      
+      # Calculate the size difference
+      size_difference_gb=$(echo "scale=2; $target_size_gb - $source_size_gb" | bc)
+      
+      echo "Size Difference (GB): $size_difference_gb"
+      
+      # Append the result to the output file
+      echo -e "$source_schema.$source_table\t$source_size_gb\t$target_size_gb\t$size_difference_gb" >> "$output_file"
+    else
+      echo "Target table not found: $source_table"
+      echo -e "$source_schema.$source_table\t$source_size_gb\t-\t-" >> "$output_file"
+    fi
+  else
+    echo "Target schema not found: $source_schema"
+    echo -e "$source_schema.$source_table\t$source_size_gb\t-\t-" >> "$output_file"
+  fi
+  
+  echo "---------------------------"
+done < "$source_file"
+
+echo "Table size difference file generated: $output_file"
