@@ -32,11 +32,10 @@ fi
 echo "Table\tSource Size (GB)\tTarget Size (GB)\tSize Difference (GB)" > "$output_file"
 
 # Read the source file line by line
-while IFS=$'\t' read -r source_schema source_table; do
+while IFS=$'\t' read -r source_schema source_table source_size_kb; do
   echo "Reading source line: $source_schema $source_table"
   
-  # Get the size of the source table
-  source_size_kb=$(db2 -x "SELECT (DATA_OBJECT_P_SIZE + INDEX_OBJECT_P_SIZE + LONG_OBJECT_P_SIZE + LOB_OBJECT_P_SIZE + XML_OBJECT_P_SIZE) / (1024*1024) FROM SYSIBMADM.ADMINTABINFO WHERE TABSCHEMA = '$source_schema' AND TABNAME = '$source_table'")
+  # Convert source size to GB
   source_size_gb=$(calculate_size_gb "$source_size_kb")
   
   echo "Source Size (GB): $source_size_gb"
@@ -47,7 +46,7 @@ while IFS=$'\t' read -r source_schema source_table; do
   if [ -n "$target_schema_exists" ]; then
     echo "Target schema found: $source_schema"
     
-    # Check if the target table exists in the target schema
+    # Check if the target table exists in the target file
     target_table_exists=$(grep -w "$source_table" "$target_file")
     
     if [ -n "$target_table_exists" ]; then
@@ -75,6 +74,6 @@ while IFS=$'\t' read -r source_schema source_table; do
   fi
   
   echo "---------------------------"
-done < "$source_file"
+done < <(tail -n +2 "$source_file")
 
 echo "Table size difference file generated: $output_file"
