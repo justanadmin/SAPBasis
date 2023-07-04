@@ -8,12 +8,13 @@ output_file="output.txt"
 get_parameter_value() {
     local parameter_name=$1
     local file=$2
-    local value=$(grep "$parameter_name" "$file" | cut -d '=' -f 2 | tr -d ' ')
+    local value=$(grep -E "^$parameter_name\s*=" "$file" | awk -F'=' '{gsub(/^[[:space:]]+| [[:space:]]+$/, "", $2); print $2}')
     echo "$value"
 }
 
-# Array to store differences
+# Arrays to store differences and target-only parameters
 differences=()
+target_only=()
 
 # Function to create the table-like form
 create_table() {
@@ -30,22 +31,37 @@ while IFS='=' read -r source_param_name source_param_value; do
         target_param_value=$(get_parameter_value "$source_param_name" "$target_file")
 
         if [ -z "$target_param_value" ]; then
-            echo "Parameter $source_param_name not found in the target file." >> "$output_file"
-            differences+=("$source_param_name = $source_param_value")
+            target_only+=("$source_param_name")
         elif [ "$source_param_value" != "$target_param_value" ]; then
-            create_table "$source_param_name" "$source_param_value" "$target_param_value"
-            differences+=("$source_param_name = $source_param_value")
-        else
-            create_table "$source_param_name" "$source_param_value" "$target_param_value"
+            differences+=("$source_param_name")
         fi
     fi
 done < "$source_file"
 
-# Print differences at the bottom of the output file
+# Print the differences in the output file
+echo -e "| Parameter           | Source Value    | Target Value    |" > "$output_file"
+echo -e "|---------------------|-----------------|-----------------|" >> "$output_file"
+for param in "${differences[@]}"; do
+    source_value=$(get_parameter_value "$param" "$source_file")
+    target_value=$(get_parameter_value "$param" "$target_file")
+    create_table "$param" "$source_value" "$target_value"
+done
+
+# Print the target-only parameters in the output file
+if [ "${#target_only[@]}" -gt 0 ]; then
+    echo -e "\nTarget-only Parameters:\n" >> "$output_file"
+    for param in "${target_only[@]}"; do
+        target_value=$(get_parameter_value "$param" "$target_file")
+        create_table "$param" "Not present in source file" "$target_value"
+    done
+fi
+
+# Print the parameters that are different from source
 if [ "${#differences[@]}" -gt 0 ]; then
-    echo -e "\nDifferences:\n" >> "$output_file"
+    echo -e "\nDifferent Parameters from Source:\n" >> "$output_file"
     for param in "${differences[@]}"; do
-        echo "Parameter: $param" >> "$output_file"
+        source_value=$(get_parameter_value "$param" "$source_file")
+        echo "$param = $source_value" >> "$output_file"
     done
 fi
 
