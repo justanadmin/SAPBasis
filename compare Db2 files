@@ -15,15 +15,29 @@ get_parameter_value() {
 # Array to store differences
 differences=()
 
+# Function to create the table-like form
+create_table() {
+    local param_name=$1
+    local source_value=$2
+    local target_value=$3
+    printf "| %-20s | %-15s | %-15s |\n" "$param_name" "$source_value" "$target_value" >> "$output_file"
+}
+
 # Read the source file and compare parameter values with the target file
 while IFS='=' read -r source_param_name source_param_value; do
-    target_param_value=$(get_parameter_value "$source_param_name" "$target_file")
-    
-    if [ -z "$target_param_value" ]; then
-        echo "Parameter $source_param_name not found in the target file." >> "$output_file"
-    elif [ "$source_param_value" != "$target_param_value" ]; then
-        echo "Parameter: $source_param_name | Source Value: $source_param_value | Target Value: $target_param_value" >> "$output_file"
-        differences+=("$source_param_name")
+    # Ignore empty lines or lines with only spaces
+    if [[ ! "$source_param_name" =~ ^[[:space:]]*$ ]]; then
+        target_param_value=$(get_parameter_value "$source_param_name" "$target_file")
+
+        if [ -z "$target_param_value" ]; then
+            echo "Parameter $source_param_name not found in the target file." >> "$output_file"
+            differences+=("$source_param_name = $source_param_value")
+        elif [ "$source_param_value" != "$target_param_value" ]; then
+            create_table "$source_param_name" "$source_param_value" "$target_param_value"
+            differences+=("$source_param_name = $source_param_value")
+        else
+            create_table "$source_param_name" "$source_param_value" "$target_param_value"
+        fi
     fi
 done < "$source_file"
 
