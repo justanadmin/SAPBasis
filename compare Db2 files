@@ -12,6 +12,9 @@ get_parameter_value() {
     echo "$value"
 }
 
+# Array to store differences
+differences=()
+
 # Read the source file and compare parameter values with the target file
 while IFS='=' read -r source_param_name source_param_value; do
     target_param_value=$(get_parameter_value "$source_param_name" "$target_file")
@@ -20,7 +23,16 @@ while IFS='=' read -r source_param_name source_param_value; do
         echo "Parameter $source_param_name not found in the target file." >> "$output_file"
     elif [ "$source_param_value" != "$target_param_value" ]; then
         echo "Parameter: $source_param_name | Source Value: $source_param_value | Target Value: $target_param_value" >> "$output_file"
+        differences+=("$source_param_name")
     fi
 done < "$source_file"
+
+# Print differences at the bottom of the output file
+if [ "${#differences[@]}" -gt 0 ]; then
+    echo -e "\nDifferences:\n" >> "$output_file"
+    for param in "${differences[@]}"; do
+        echo "Parameter: $param" >> "$output_file"
+    done
+fi
 
 echo "Comparison completed. Please check the output file: $output_file"
