@@ -1,0 +1,26 @@
+#!/bin/bash
+
+source_file="source.txt"
+target_file="target.txt"
+output_file="output.txt"
+
+# Function to get the value for a given parameter from a file
+get_parameter_value() {
+    local parameter_name=$1
+    local file=$2
+    local value=$(grep "$parameter_name" "$file" | cut -d '=' -f 2 | tr -d ' ')
+    echo "$value"
+}
+
+# Read the source file and compare parameter values with the target file
+while IFS='=' read -r source_param_name source_param_value; do
+    target_param_value=$(get_parameter_value "$source_param_name" "$target_file")
+    
+    if [ -z "$target_param_value" ]; then
+        echo "Parameter $source_param_name not found in the target file." >> "$output_file"
+    elif [ "$source_param_value" != "$target_param_value" ]; then
+        echo "Parameter: $source_param_name | Source Value: $source_param_value | Target Value: $target_param_value" >> "$output_file"
+    fi
+done < "$source_file"
+
+echo "Comparison completed. Please check the output file: $output_file"
