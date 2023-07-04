@@ -5,10 +5,8 @@ check_parameters() {
   local system_id=$2
   local changes_file=$3
 
-  echo "Starting parameter checks..."
-  echo "Parameter file: $parameter_file"
-  echo "SystemID: $system_id"
-  echo "Changes file: $changes_file"
+  # Remove existing changes file
+  rm -f "$changes_file"
 
   # Read the parameter file line by line
   while IFS= read -r line || [ -n "$line" ]; do
@@ -20,45 +18,45 @@ check_parameters() {
     # Split the line into tagName, recommendedValue, and parameterType
     read -r tagName recommendedValue parameterType <<<"$line"
 
-    echo "Checking parameter: $tagName"
-
     # Perform different actions based on the parameterType
     case $parameterType in
       DBM | dbm)
-        echo "Parameter type: DBM"
-
         # Retrieve value
         cmd_value="db2 get dbm cfg | awk -F'=' -v tag=\"$tagName\" '/$tagName/ { gsub(/[[:space:]]+/, \"\", \$2); print \$2 }'"
         value_output=$(eval "$cmd_value" | head -n 1)
         if [ -z "$value_output" ]; then
           value_output="Value is not set"
         fi
-        echo "Current value: $value_output"
+
+        # Compare the current value with the recommended value
+        if [ "$value_output" != "$recommendedValue" ]; then
+          # Write the change to the changes file
+          echo "$tagName is $value_output. Change it to $recommendedValue" >> "$changes_file"
+        fi
         ;;
       SID | sid)
-        echo "Parameter type: SID"
-
         # Retrieve value
         cmd_value="db2 get db cfg for $system_id | awk -F'=' -v tag=\"$tagName\" '/$tagName/ { gsub(/[[:space:]]+/, \"\", \$2); print \$2 }'"
         value_output=$(eval "$cmd_value" | head -n 1)
         if [ -z "$value_output" ]; then
           value_output="Value is not set"
         fi
-        echo "Current value: $value_output"
+
+        # Compare the current value with the recommended value
+        if [ "$value_output" != "$recommendedValue" ]; then
+          # Write the change to the changes file
+          echo "$tagName is $value_output. Change it to $recommendedValue" >> "$changes_file"
+        fi
         ;;
       *)
         echo "Invalid parameter type: $parameterType. Skipping..."
         continue
         ;;
     esac
-
-    # Rest of the function code...
-
-    echo "Parameter check completed."
   done < "$parameter_file"
 
   echo "All parameter checks completed. Please check the $changes_file file for any required changes."
 }
 
 # Call the check_parameters() function
-check_parameters "parameter_file.txt" "MySystemID" "listofchanges.txt"
+check_parameters $1 $2 $3
