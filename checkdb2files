@@ -1,0 +1,83 @@
+import sys
+
+# Check if the correct number of command-line arguments is provided
+if len(sys.argv) != 3:
+    print("Usage: python script.py <source_file_path> <target_file_path>")
+    sys.exit(1)
+
+source_file_path = sys.argv[1]
+target_file_path = sys.argv[2]
+
+# Open the source and target files
+try:
+    with open(source_file_path, 'r') as source_file, open(target_file_path, 'r') as target_file:
+        # Read the lines from both files
+        source_lines = source_file.readlines()
+        target_lines = target_file.readlines()
+except IOError:
+    print("Error: Unable to open the specified files.")
+    sys.exit(1)
+
+# Create dictionaries to store the parameter values from source and target files
+source_params = {}
+target_params = {}
+
+# Process source file
+for line in source_lines:
+    # Ignore empty lines
+    if line.strip() != "":
+        # Split the line into parameter tag and value
+        tag, value = line.strip().split("=")
+        # Store the value in the source_params dictionary
+        source_params[tag.strip()] = value.strip()
+
+# Process target file
+for line in target_lines:
+    # Ignore empty lines
+    if line.strip() != "":
+        # Split the line into parameter tag and value
+        tag, value = line.strip().split("=")
+        # Store the value in the target_params dictionary
+        target_params[tag.strip()] = value.strip()
+
+# Open the comparison output file
+output_file_path = 'comparison_output.txt'
+try:
+    output_file = open(output_file_path, 'w')
+except IOError:
+    print("Error: Unable to create the output file.")
+    sys.exit(1)
+
+# Write the header for the parameter comparison table
+output_file.write("| Parameter           | Source Value    | Target Value    |\n")
+output_file.write("|---------------------|-----------------|-----------------|\n")
+
+# Iterate over the parameters from the source file
+for param, source_value in source_params.items():
+    # Check if the parameter exists in the target file
+    if param in target_params:
+        target_value = target_params[param]
+        # Compare the values
+        if source_value == target_value:
+            comparison = "Same"
+        else:
+            comparison = "Different"
+
+        # Write the parameter details to the output file
+        output_file.write("| {:<20} | {:<15} | {:<15} |\n".format(param, source_value, target_value))
+
+# Write the header for the different parameter values table
+output_file.write("\n\n| Parameter           | Source Value    | Target Value    |\n")
+output_file.write("|---------------------|-----------------|-----------------|\n")
+
+# Iterate over the parameters from the target file
+for param, target_value in target_params.items():
+    # Check if the parameter exists in the source file
+    if param not in source_params:
+        # Write the parameter details to the output file
+        output_file.write("| {:<20} | {:<15} | {:<15} |\n".format(param, "", target_value))
+
+# Close the output file
+output_file.close()
+
+print("Comparison output saved to", output_file_path)
