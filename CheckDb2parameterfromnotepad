@@ -1,0 +1,64 @@
+#!/bin/bash
+
+check_parameters() {
+  local parameter_file=$1
+  local system_id=$2
+  local changes_file=$3
+
+  echo "Starting parameter checks..."
+  echo "Parameter file: $parameter_file"
+  echo "SystemID: $system_id"
+  echo "Changes file: $changes_file"
+
+  # Read the parameter file line by line
+  while IFS= read -r line || [ -n "$line" ]; do
+    # Skip empty lines or lines starting with a comment character #
+    if [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]]; then
+      continue
+    fi
+
+    # Split the line into tagName, recommendedValue, and parameterType
+    read -r tagName recommendedValue parameterType <<<"$line"
+
+    echo "Checking parameter: $tagName"
+
+    # Perform different actions based on the parameterType
+    case $parameterType in
+      DBM | dbm)
+        echo "Parameter type: DBM"
+
+        # Retrieve value
+        cmd_value="db2 get dbm cfg | awk -F'=' -v tag=\"$tagName\" '/$tagName/ { gsub(/[[:space:]]+/, \"\", \$2); print \$2 }'"
+        value_output=$(eval "$cmd_value" | head -n 1)
+        if [ -z "$value_output" ]; then
+          value_output="Value is not set"
+        fi
+        echo "Current value: $value_output"
+        ;;
+      SID | sid)
+        echo "Parameter type: SID"
+
+        # Retrieve value
+        cmd_value="db2 get db cfg for $system_id | awk -F'=' -v tag=\"$tagName\" '/$tagName/ { gsub(/[[:space:]]+/, \"\", \$2); print \$2 }'"
+        value_output=$(eval "$cmd_value" | head -n 1)
+        if [ -z "$value_output" ]; then
+          value_output="Value is not set"
+        fi
+        echo "Current value: $value_output"
+        ;;
+      *)
+        echo "Invalid parameter type: $parameterType. Skipping..."
+        continue
+        ;;
+    esac
+
+    # Rest of the function code...
+
+    echo "Parameter check completed."
+  done < "$parameter_file"
+
+  echo "All parameter checks completed. Please check the $changes_file file for any required changes."
+}
+
+# Call the check_parameters() function
+check_parameters "parameter_file.txt" "MySystemID" "listofchanges.txt"
