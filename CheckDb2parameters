@@ -46,7 +46,23 @@ check_parameters() {
         ;;
       SID | sid)
         echo "Parameter type: SID"
-        # Add the similar flow for SID parameter type
+
+        # Retrieve tagName
+        cmd_tagName="db2 get db cfg for $system_id | awk -F'[()]' -v tag=\"$tagName\" '/$tagName/ { gsub(/[[:space:]]+/, \"\", \$2); print \$2 }'"
+        tagName_output=$(eval "$cmd_tagName" | head -n 1)
+        if [ -z "$tagName_output" ]; then
+          echo "Error retrieving tagName for $tagName. Skipping..."
+          continue
+        fi
+        echo "tagName: $tagName_output"
+
+        # Retrieve value
+        cmd_value="db2 get db cfg for $system_id | awk -F'=' -v tag=\"$tagName_output\" '/$tagName_output/ { gsub(/[[:space:]]+/, \"\", \$2); print \$2 }'"
+        value_output=$(eval "$cmd_value" | head -n 1)
+        if [ -z "$value_output" ]; then
+          value_output="Value is not set"
+        fi
+        echo "Current value: $value_output"
         ;;
       *)
         echo "Invalid parameter type: $parameterType. Skipping..."
@@ -63,4 +79,4 @@ check_parameters() {
 }
 
 # Call the check_parameters() function
-check_parameters $1 $2 $3
+check_parameters "parameter_file.txt" "MySystemID" "listofchanges.txt"
