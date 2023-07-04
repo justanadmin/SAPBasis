@@ -14,8 +14,9 @@ try:
         # Read the lines from both files
         source_lines = source_file.readlines()
         target_lines = target_file.readlines()
-except IOError:
+except IOError as e:
     print("Error: Unable to open the specified files.")
+    print(e)
     sys.exit(1)
 
 # Create dictionaries to store the parameter values from source and target files
@@ -48,8 +49,9 @@ for line in target_lines:
 output_file_path = 'comparison_output.txt'
 try:
     output_file = open(output_file_path, 'w')
-except IOError:
+except IOError as e:
     print("Error: Unable to create the output file.")
+    print(e)
     sys.exit(1)
 
 # Write the header for the parameter comparison table
@@ -80,6 +82,21 @@ for param, target_value in target_params.iteritems():
     if param not in source_params:
         # Write the parameter details to the output file
         output_file.write("| {:<20} | {:<15} | {:<15} |\n".format(param, "", target_value))
+
+# Write the differences in the same format
+output_file.write("\n\nDifferences:\n")
+output_file.write("| Parameter           | Source Value    | Target Value    |\n")
+output_file.write("|---------------------|-----------------|-----------------|\n")
+
+# Iterate over the parameters from the source file
+for param, source_value in source_params.iteritems():
+    # Check if the parameter exists in the target file
+    if param in target_params:
+        target_value = target_params[param]
+        # Compare the values
+        if source_value != target_value:
+            # Write the difference details to the output file
+            output_file.write("| {:<20} | {:<15} | {:<15} |\n".format(param, source_value, target_value))
 
 # Close the output file
 output_file.close()
