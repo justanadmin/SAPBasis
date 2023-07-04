@@ -53,7 +53,7 @@ output_file.write("| Parameter           | Source Value    | Target Value    |\n
 output_file.write("|---------------------|-----------------|-----------------|\n")
 
 # Iterate over the parameters from the source file
-for param, source_value in source_params.items():
+for param, source_value in source_params.iteritems():
     # Check if the parameter exists in the target file
     if param in target_params:
         target_value = target_params[param]
@@ -71,7 +71,7 @@ output_file.write("\n\n| Parameter           | Source Value    | Target Value   
 output_file.write("|---------------------|-----------------|-----------------|\n")
 
 # Iterate over the parameters from the target file
-for param, target_value in target_params.items():
+for param, target_value in target_params.iteritems():
     # Check if the parameter exists in the source file
     if param not in source_params:
         # Write the parameter details to the output file
