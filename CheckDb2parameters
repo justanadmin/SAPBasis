@@ -63,4 +63,4 @@ check_parameters() {
 }
 
 # Call the check_parameters() function
-check_parameters "parameter_file.txt" "MySystemID" "listofchanges.txt"
+check_parameters $1 $2 $3
