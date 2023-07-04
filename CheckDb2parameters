@@ -1,14 +1,14 @@
 #!/bin/bash
 
 check_parameters() {
-  local notepad_file=$1
+  local parameter_file=$1
   local system_id=$2
-  local parameter_file="parameter_file.txt"
-  local changes_file="listofchanges.txt"
+  local changes_file=$3
 
   echo "Starting parameter checks..."
-  echo "Notepad file: $notepad_file"
+  echo "Parameter file: $parameter_file"
   echo "SystemID: $system_id"
+  echo "Changes file: $changes_file"
 
   # Read the parameter file line by line
   while IFS= read -r line || [ -n "$line" ]; do
@@ -26,20 +26,17 @@ check_parameters() {
     case $parameterType in
       DBM | dbm)
         echo "Parameter type: DBM"
-        cmd="su - <user> -c 'db2 get dbm cfg | grep -i \"$tagName\"'"
+        cmd="su -db2$system_id -c 'db2 get dbm cfg | grep -i \"$tagName\"'"
         ;;
       SID | sid)
         echo "Parameter type: SID"
-        cmd="su - <user> -c 'db2 get db cfg for $system_id | grep -i \"$tagName\"'"
+        cmd="su -db2$system_id -c 'db2 get db cfg for $system_id | grep -i \"$tagName\"'"
         ;;
       *)
         echo "Invalid parameter type: $parameterType. Skipping..."
         continue
         ;;
     esac
-
-    # Replace <user> with the actual user who has the necessary privileges to execute the command
-    cmd="${cmd/<user>/actual_user}"
 
     echo "Executing command: $cmd"
 
