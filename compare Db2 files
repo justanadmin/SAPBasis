@@ -8,7 +8,7 @@ output_file="output.txt"
 get_parameter_value() {
     local parameter_name=$1
     local file=$2
-    local value=$(grep -E "^$parameter_name\s*=" "$file" | awk -F'=' '{gsub(/^[[:space:]]+| [[:space:]]+$/, "", $2); print $2}')
+    local value=$(grep -E "^$parameter_name\s*=" "$file" | sed -n "s/.*= *//p")
     echo "$value"
 }
 
@@ -21,7 +21,7 @@ create_table() {
     local param_name=$1
     local source_value=$2
     local target_value=$3
-    printf "| %-20s | %-15s | %-15s |\n" "$param_name" "$source_value" "$target_value" >> "$output_file"
+    printf "| %-20s | %-30s | %-30s |\n" "$param_name" "$source_value" "$target_value" >> "$output_file"
 }
 
 # Read the source file and compare parameter values with the target file
@@ -39,8 +39,8 @@ while IFS='=' read -r source_param_name source_param_value; do
 done < "$source_file"
 
 # Print the differences in the output file
-echo -e "| Parameter           | Source Value    | Target Value    |" > "$output_file"
-echo -e "|---------------------|-----------------|-----------------|" >> "$output_file"
+echo -e "| Parameter           | Source Value                        | Target Value                        |" > "$output_file"
+echo -e "|---------------------|-------------------------------------|-------------------------------------|" >> "$output_file"
 for param in "${differences[@]}"; do
     source_value=$(get_parameter_value "$param" "$source_file")
     target_value=$(get_parameter_value "$param" "$target_file")
