@@ -27,18 +27,22 @@ for line in source_lines:
     # Ignore empty lines
     if line.strip() != "":
         # Split the line into parameter tag and value
-        tag, value = line.strip().split("=")
-        # Store the value in the source_params dictionary
-        source_params[tag.strip()] = value.strip()
+        split_line = line.strip().split("=")
+        if len(split_line) == 2:
+            tag, value = split_line
+            # Store the value in the source_params dictionary
+            source_params[tag.strip()] = value.strip()
 
 # Process target file
 for line in target_lines:
     # Ignore empty lines
     if line.strip() != "":
         # Split the line into parameter tag and value
-        tag, value = line.strip().split("=")
-        # Store the value in the target_params dictionary
-        target_params[tag.strip()] = value.strip()
+        split_line = line.strip().split("=")
+        if len(split_line) == 2:
+            tag, value = split_line
+            # Store the value in the target_params dictionary
+            target_params[tag.strip()] = value.strip()
 
 # Open the comparison output file
 output_file_path = 'comparison_output.txt'
