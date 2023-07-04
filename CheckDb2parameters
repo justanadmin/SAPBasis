@@ -6,6 +6,10 @@ check_parameters() {
   local parameter_file="parameter_file.txt"
   local changes_file="listofchanges.txt"
 
+  echo "Starting parameter checks..."
+  echo "Notepad file: $notepad_file"
+  echo "SystemID: $system_id"
+
   # Read the parameter file line by line
   while IFS= read -r line || [ -n "$line" ]; do
     # Skip empty lines or lines starting with a comment character #
@@ -16,18 +20,25 @@ check_parameters() {
     # Split the line into tagName, recommendedValue, and parameterType
     read -r tagName recommendedValue parameterType <<<"$line"
 
+    echo "Checking parameter: $tagName"
+
     # Perform different actions based on the parameterType
     case $parameterType in
       DBM | dbm)
+        echo "Parameter type: DBM"
         cmd="su -db2$system_id -c 'db2 get dbm cfg | grep -i \"$tagName\"'"
         ;;
       SID | sid)
+        echo "Parameter type: SID"
         cmd="su -db2$system_id -c 'db2 get db cfg for $system_id | grep -i \"$tagName\"'"
         ;;
       *)
+        echo "Invalid parameter type: $parameterType. Skipping..."
         continue
         ;;
     esac
+
+    echo "Executing command: $cmd"
 
     # Get the output of the command
     output=$(eval "$cmd")
@@ -40,11 +51,15 @@ check_parameters() {
       value="Value is not set"
     fi
 
+    echo "Current value: $value"
+
     # Compare the value with the recommendedValue
     if [ "$value" != "$recommendedValue" ]; then
       echo "$tagName is $value, we need to change it to $recommendedValue" >> "$changes_file"
     fi
+
+    echo "Parameter check completed."
   done < "$parameter_file"
 
-  echo "Parameter checks completed. Please check the $changes_file file for any required changes."
+  echo "All parameter checks completed. Please check the $changes_file file for any required changes."
 }
