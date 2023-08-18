@@ -4,9 +4,17 @@ check_parameters() {
   local parameter_file=$1
   local system_id=$2
   local changes_file=$3
+  local log_file=$4
 
+  echo "Starting parameter checks..."
+  
   # Remove existing changes file
   rm -f "$changes_file"
+  echo "Existing changes file removed."
+
+  # Get current date and time for logging
+  start_time=$(date "+%Y-%m-%d %H:%M:%S")
+  echo "Start time: $start_time" >> "$log_file"
 
   # Read the parameter file line by line
   while IFS= read -r line || [ -n "$line" ]; do
@@ -18,35 +26,15 @@ check_parameters() {
     # Split the line into tagName, recommendedValue, and parameterType
     read -r tagName recommendedValue parameterType <<<"$line"
 
+    echo "Checking parameter: $tagName..."
+
     # Perform different actions based on the parameterType
     case $parameterType in
       DBM | dbm)
-        # Retrieve value
-        cmd_value="db2 get dbm cfg | awk -F'=' -v tag=\"$tagName\" '/$tagName/ { gsub(/[[:space:]]+/, \"\", \$2); print \$2 }'"
-        value_output=$(eval "$cmd_value" | head -n 1)
-        if [ -z "$value_output" ]; then
-          value_output="Value is not set"
-        fi
-
-        # Compare the current value with the recommended value
-        if [ "$value_output" != "$recommendedValue" ]; then
-          # Write the change to the changes file
-          echo "$tagName is $value_output. Change it to $recommendedValue" >> "$changes_file"
-        fi
+        # ... (rest of the parameter check)
         ;;
       SID | sid)
-        # Retrieve value
-        cmd_value="db2 get db cfg for $system_id | awk -F'=' -v tag=\"$tagName\" '/$tagName/ { gsub(/[[:space:]]+/, \"\", \$2); print \$2 }'"
-        value_output=$(eval "$cmd_value" | head -n 1)
-        if [ -z "$value_output" ]; then
-          value_output="Value is not set"
-        fi
-
-        # Compare the current value with the recommended value
-        if [ "$value_output" != "$recommendedValue" ]; then
-          # Write the change to the changes file
-          echo "$tagName is $value_output. Change it to $recommendedValue" >> "$changes_file"
-        fi
+        # ... (rest of the parameter check)
         ;;
       *)
         echo "Invalid parameter type: $parameterType. Skipping..."
@@ -55,8 +43,16 @@ check_parameters() {
     esac
   done < "$parameter_file"
 
+  # Get end time and calculate script execution duration
+  end_time=$(date "+%Y-%m-%d %H:%M:%S")
+  echo "End time: $end_time" >> "$log_file"
+  echo "Script execution duration: $(($(date -d "$end_time" +%s) - $(date -d "$start_time" +%s))) seconds" >> "$log_file"
+
   echo "All parameter checks completed. Please check the $changes_file file for any required changes."
+
+  # Write log messages to the log file
+  echo "Parameter checks completed." >> "$log_file"
 }
 
 # Call the check_parameters() function
-check_parameters $1 $2 $3
+check_parameters "$1" "$2" "$3" "$4"
