@@ -1,73 +1,79 @@
 #!/bin/bash
 
-check_parameters() {
-  local parameter_file=$1
-  local system_id=$2
-  local changes_file=$3
-  local log_file=$4
+local parameter_file=$1
+local system_id=$2
+local changes_file=$3
+local log_file=$4
 
-  echo "Starting parameter checks..." >> "$log_file"
-  
-  # Remove existing changes file
-  rm -f "$changes_file"
-  echo "Existing changes file removed." >> "$log_file"
+# Remove existing changes file
+rm -f "$changes_file"
 
-  # Get current date and time for logging
-  start_time=$(date "+%Y-%m-%d %H:%M:%S")
-  echo "Start time: $start_time" >> "$log_file"
+echo -e "Starting parameter checks...\n" >> "$log_file"
 
-  echo "Reading parameter file: $parameter_file" >> "$log_file"
+# Read the parameter file line by line
+while IFS= read -r line || [ -n "$line" ]; do
+  echo "Processing line: $line" >> "$log_file"
 
-  # Create a header for the changes table
-  echo -e "Parameter Name\tRecommended Value\tCurrent Value\tStatus" >> "$changes_file"
+  # Split the line into tagName, recommendedValue, parameterType, and optional command
+  read -r tagName recommendedValue parameterType command <<<"$line"
 
-  # Read the parameter file line by line
-  while IFS= read -r line || [ -n "$line" ]; do
-    # Skip empty lines or lines starting with a comment character #
-    if [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]]; then
+  # Handle parameterType enclosed in double quotes
+  if [[ $parameterType == \"*\" ]]; then
+    parameterType=$(echo "$parameterType" | sed 's/^"\(.*\)"$/\1/')
+    command="$parameterType"  # Set the command as the extracted parameterType
+  fi
+
+  # Perform different actions based on the parameterType
+  case $parameterType in
+    DBM | dbm)
+      # Retrieve value using the provided command or default command
+      if [ -n "$command" ]; then
+        cmd_value="$command"
+      else
+        cmd_value="db2 get dbm cfg | awk -F'=' -v tag=\"$tagName\" '/$tagName/ { gsub(/[[:space:]]+/, \"\", \$2); print \$2 }'"
+      fi
+      value_output=$(eval "$cmd_value" | head -n 1)
+      if [ -z "$value_output" ]; then
+        value_output="Value is not set"
+      fi
+
+      # Compare the current value with the recommended value
+      if [ "$value_output" != "$recommendedValue" ]; then
+        # Write the change to the changes file in tabular format
+        echo -e "Parameter\tCurrent\t\tRecommended\tOK/NOTOK" >> "$changes_file"
+        echo -e "$tagName\t$value_output\t$recommendedValue\tNOTOK" >> "$changes_file"
+      else
+        echo -e "Parameter\tCurrent\t\tRecommended\tOK/NOTOK" >> "$changes_file"
+        echo -e "$tagName\t$value_output\t$recommendedValue\tOK" >> "$changes_file"
+      fi
+      ;;
+    SID | sid)
+      # Retrieve value using the provided command or default command
+      if [ -n "$command" ]; then
+        cmd_value="$command"
+      else
+        cmd_value="db2 get db cfg for $system_id | awk -F'=' -v tag=\"$tagName\" '/$tagName/ { gsub(/[[:space:]]+/, \"\", \$2); print \$2 }'"
+      fi
+      value_output=$(eval "$cmd_value" | head -n 1)
+      if [ -z "$value_output" ]; then
+        value_output="Value is not set"
+      fi
+
+      # Compare the current value with the recommended value
+      if [ "$value_output" != "$recommendedValue" ]; then
+        # Write the change to the changes file in tabular format
+        echo -e "Parameter\tCurrent\t\tRecommended\tOK/NOTOK" >> "$changes_file"
+        echo -e "$tagName\t$value_output\t$recommendedValue\tNOTOK" >> "$changes_file"
+      else
+        echo -e "Parameter\tCurrent\t\tRecommended\tOK/NOTOK" >> "$changes_file"
+        echo -e "$tagName\t$value_output\t$recommendedValue\tOK" >> "$changes_file"
+      fi
+      ;;
+    *)
+      echo "Invalid parameter type: $parameterType. Skipping..." >> "$log_file"
       continue
-    fi
+      ;;
+  esac
+done < "$parameter_file"
 
-    # Split the line into tagName, recommendedValue, and parameterType
-    read -r tagName recommendedValue parameterType <<<"$line"
-
-    echo "Checking parameter: $tagName..." >> "$log_file"
-
-    # Retrieve the current value based on parameterType
-    case $parameterType in
-      DBM | dbm)
-        current_value=$(db2 get dbm cfg | awk -F'=' -v tag="$tagName" '/$tagName/ { gsub(/[[:space:]]+/, "", $2); print $2 }' | head -n 1)
-        ;;
-      SID | sid)
-        current_value=$(db2 get db cfg for $system_id | awk -F'=' -v tag="$tagName" '/$tagName/ { gsub(/[[:space:]]+/, "", $2); print $2 }' | head -n 1)
-        ;;
-      *)
-        echo "Invalid parameter type: $parameterType. Skipping..." >> "$log_file"
-        continue
-        ;;
-    esac
-
-    # Compare the current value with the recommended value
-    if [ "$current_value" != "$recommendedValue" ]; then
-      echo -e "$tagName\t$recommendedValue\t$current_value\tNOT OK" >> "$changes_file"
-      echo "Change recommended: $recommendedValue" >> "$log_file"
-      echo "Change recorded in $changes_file." >> "$log_file"
-    else
-      echo -e "$tagName\t$recommendedValue\t$current_value\tOK" >> "$changes_file"
-      echo "No changes required." >> "$log_file"
-    fi
-
-  done < "$parameter_file"
-
-  # Get end time and calculate script execution duration
-  end_time=$(date "+%Y-%m-%d %H:%M:%S")
-  echo "End time: $end_time" >> "$log_file"
-  echo "Script execution duration: $(($(date -d "$end_time" +%s) - $(date -d "$start_time" +%s))) seconds" >> "$log_file"
-
-  echo "All parameter checks completed. Please check the $changes_file file for any required changes." >> "$log_file"
-
-  echo "Parameter checks completed." >> "$log_file"
-}
-
-# Call the check_parameters() function
-check_parameters "$1" "$2" "$3" "$4"
+echo -e "All parameter checks completed. Please check the $changes_file file for any required changes.\n" >> "$log_file"
