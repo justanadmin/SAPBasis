@@ -6,11 +6,11 @@ check_parameters() {
   local changes_file=$3
   local log_file=$4
 
-  echo "Starting parameter checks..."
+  echo "Starting parameter checks..." >> "$log_file"
   
   # Remove existing changes file
   rm -f "$changes_file"
-  echo "Existing changes file removed."
+  echo "Existing changes file removed." >> "$log_file"
 
   # Get current date and time for logging
   start_time=$(date "+%Y-%m-%d %H:%M:%S")
@@ -26,7 +26,7 @@ check_parameters() {
     # Split the line into tagName, recommendedValue, and parameterType
     read -r tagName recommendedValue parameterType <<<"$line"
 
-    echo "Checking parameter: $tagName..."
+    echo "Checking parameter: $tagName..." >> "$log_file"
 
     # Perform different actions based on the parameterType
     case $parameterType in
@@ -37,7 +37,7 @@ check_parameters() {
         # ... (rest of the parameter check)
         ;;
       *)
-        echo "Invalid parameter type: $parameterType. Skipping..."
+        echo "Invalid parameter type: $parameterType. Skipping..." >> "$log_file"
         continue
         ;;
     esac
@@ -48,9 +48,8 @@ check_parameters() {
   echo "End time: $end_time" >> "$log_file"
   echo "Script execution duration: $(($(date -d "$end_time" +%s) - $(date -d "$start_time" +%s))) seconds" >> "$log_file"
 
-  echo "All parameter checks completed. Please check the $changes_file file for any required changes."
+  echo "All parameter checks completed. Please check the $changes_file file for any required changes." >> "$log_file"
 
-  # Write log messages to the log file
   echo "Parameter checks completed." >> "$log_file"
 }
 
