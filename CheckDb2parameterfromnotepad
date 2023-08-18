@@ -16,6 +16,11 @@ check_parameters() {
   start_time=$(date "+%Y-%m-%d %H:%M:%S")
   echo "Start time: $start_time" >> "$log_file"
 
+  echo "Reading parameter file: $parameter_file" >> "$log_file"
+
+  # Create a header for the changes table
+  echo -e "Parameter Name\tRecommended Value\tCurrent Value\tStatus" >> "$changes_file"
+
   # Read the parameter file line by line
   while IFS= read -r line || [ -n "$line" ]; do
     # Skip empty lines or lines starting with a comment character #
@@ -28,19 +33,30 @@ check_parameters() {
 
     echo "Checking parameter: $tagName..." >> "$log_file"
 
-    # Perform different actions based on the parameterType
+    # Retrieve the current value based on parameterType
     case $parameterType in
       DBM | dbm)
-        # ... (rest of the parameter check)
+        current_value=$(db2 get dbm cfg | awk -F'=' -v tag="$tagName" '/$tagName/ { gsub(/[[:space:]]+/, "", $2); print $2 }' | head -n 1)
         ;;
       SID | sid)
-        # ... (rest of the parameter check)
+        current_value=$(db2 get db cfg for $system_id | awk -F'=' -v tag="$tagName" '/$tagName/ { gsub(/[[:space:]]+/, "", $2); print $2 }' | head -n 1)
         ;;
       *)
         echo "Invalid parameter type: $parameterType. Skipping..." >> "$log_file"
         continue
         ;;
     esac
+
+    # Compare the current value with the recommended value
+    if [ "$current_value" != "$recommendedValue" ]; then
+      echo -e "$tagName\t$recommendedValue\t$current_value\tNOT OK" >> "$changes_file"
+      echo "Change recommended: $recommendedValue" >> "$log_file"
+      echo "Change recorded in $changes_file." >> "$log_file"
+    else
+      echo -e "$tagName\t$recommendedValue\t$current_value\tOK" >> "$changes_file"
+      echo "No changes required." >> "$log_file"
+    fi
+
   done < "$parameter_file"
 
   # Get end time and calculate script execution duration
