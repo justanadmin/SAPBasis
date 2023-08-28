@@ -13,20 +13,30 @@ check_db2_version() {
 check_parameters() {
   local parameter_file="$1"
   local system_id="$2"
-  local changes_file="${system_id}_changesToDo.txt"
-  local log_file="${system_id}_logfile.txt"
+  local path="$3"
+  local changes_file="${path}/${system_id}_changesToDo.txt"
+  local log_file="${path}/${system_id}_logfile.txt"
 
-  # Create changes file and add header
-  echo -e "Parameter\tCurrent\t\tRecommended\tOK/NOTOK" > "$changes_file"
-
+  # Set the umask to allow 777 access
+  umask 000
+  
+  # Create changes file and log file with 777 access
+  touch "$changes_file"
+  touch "$log_file"
+  chmod 777 "$changes_file"
+  chmod 777 "$log_file"
+  
   # Call the check_db2_version() function
   check_db2_version
   
-  echo -e "Starting parameter checks...\n" >> "$changes_file"
+  # Push the header to the changes_file
+  echo -e "Parameter\tCurrent\t\tRecommended\tOK/NOTOK" > "$changes_file"
+
+  echo -e "Starting parameter checks...\n" >> "$log_file"
   
   # Read the parameter file line by line
   while IFS= read -r line || [ -n "$line" ]; do
-    echo "Processing line: $line" >> "$changes_file"
+    echo "Processing line: $line" >> "$log_file"
 
     # Split the line into tagName, recommendedValue, parameterType, and optional command
     read -r tagName recommendedValue parameterType command <<<"$line"
@@ -80,14 +90,14 @@ check_parameters() {
         fi
         ;;
       *)
-        echo "Invalid parameter type: $parameterType. Skipping..." >> "$changes_file"
+        echo "Invalid parameter type: $parameterType. Skipping..." >> "$log_file"
         continue
         ;;
     esac
   done < "$parameter_file"
 
-  echo -e "All parameter checks completed. Please check the $changes_file file for any required changes.\n" >> "$changes_file"
+  echo -e "All parameter checks completed. Please check the $changes_file file for any required changes.\n" >> "$log_file"
 }
 
 # Call the check_parameters() function
-check_parameters "$1" "$2"
+check_parameters "$1" "$2" "$3"
