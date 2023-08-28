@@ -1,39 +1,33 @@
 #!/bin/bash
 
-check_db2_version() {
-    db2_version=$(db2level | grep "DB2 v" | awk '{print $5}' | sed 's/..$//')
-
-    if [[ "${db2_version:0:3}" == "v11" ]]; then
-        echo -e "DB2 Version Check\t-\t-\tVersion is v11. Need to check further." >> "$changes_file"
-    else
-        echo -e "DB2 Version Check\t-\t-\tVersion is not v11. This check can be ignored" >> "$changes_file"
-    fi
-}
-
 check_parameters() {
   local parameter_file="$1"
   local system_id="$2"
-  local path="$3"
+  local path="/sap_stage/AshishR/v11_CISChecks"
   local changes_file="${path}/${system_id}_changesToDo.txt"
   local log_file="${path}/${system_id}_logfile.txt"
 
-  # Set the umask to allow 777 access
-  umask 000
-  
   # Create changes file and log file with 777 access
+  cd "$path"
   touch "$changes_file"
   touch "$log_file"
   chmod 777 "$changes_file"
   chmod 777 "$log_file"
+  echo -e "All files created at $path " >> "$log_file"
   
   # Call the check_db2_version() function
-  check_db2_version
-  
+  db2_version=$(su - db2"$system_id" -c "db2level" | grep "DB2 v" | awk '{print $5}' | sed 's/..$//')
+
+  if [[ "${db2_version:0:3}" == "v11" ]]; then
+    echo -e "DB2 Version Check\t-\t-\tVersion is v11. Need to check further." >> "$changes_file"
+  else
+    echo -e "DB2 Version Check\t-\t-\tVersion is not v11. This check can be ignored" >> "$changes_file"
+  fi
+
   # Push the header to the changes_file
   echo -e "Parameter\tCurrent\t\tRecommended\tOK/NOTOK" > "$changes_file"
-
   echo -e "Starting parameter checks...\n" >> "$log_file"
-  
+
   # Read the parameter file line by line
   while IFS= read -r line || [ -n "$line" ]; do
     echo "Processing line: $line" >> "$log_file"
@@ -44,7 +38,7 @@ check_parameters() {
     # Handle parameterType enclosed in double quotes
     if [[ $parameterType == \"*\" ]]; then
       parameterType=$(echo "$parameterType" | sed 's/^"\(.*\)"$/\1/')
-      command="$parameterType"  # Set the command as the extracted parameterType
+      command="$parameterType" # Set the command as the extracted parameterType
     fi
 
     # Perform different actions based on the parameterType
@@ -54,7 +48,7 @@ check_parameters() {
         if [ -n "$command" ]; then
           cmd_value="$command"
         else
-          cmd_value="db2 get dbm cfg | awk -F'=' -v tag=\"$tagName\" '/$tagName/ { gsub(/[[:space:]]+/, \"\", \$2); print \$2 }'"
+          cmd_value="su - db2$system_id -c \"db2 get dbm cfg\" | awk -F'=' -v tag=\"$tagName\" '/$tagName/ { gsub(/[[:space:]]+/, \"\", \$2); print \$2 }'"
         fi
         value_output=$(eval "$cmd_value" | head -n 1)
         if [ -z "$value_output" ]; then
@@ -74,7 +68,7 @@ check_parameters() {
         if [ -n "$command" ]; then
           cmd_value="$command"
         else
-          cmd_value="db2 get db cfg for $system_id | awk -F'=' -v tag=\"$tagName\" '/$tagName/ { gsub(/[[:space:]]+/, \"\", \$2); print \$2 }'"
+          cmd_value="su - db2$system_id -c \"db2 get db cfg for $system_id\" | awk -F'=' -v tag=\"$tagName\" '/$tagName/ { gsub(/[[:space:]]+/, \"\", \$2); print \$2 }'"
         fi
         value_output=$(eval "$cmd_value" | head -n 1)
         if [ -z "$value_output" ]; then
@@ -100,4 +94,4 @@ check_parameters() {
 }
 
 # Call the check_parameters() function
-check_parameters "$1" "$2" "$3"
+check_parameters "$1" "$2"
