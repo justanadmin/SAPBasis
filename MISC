@@ -1,5 +1,12 @@
-db2level | sed -n 's/.*DB2 v\([0-9.]\+\).*/\1/p'
+check_db2_version() {
+    db2_version=$(db2level | grep "DB2 v" | awk '{print $5}' | sed 's/..$//')
 
-db2level | tr -d '\n' | cut -d' ' -f13
+    if [[ "${db2_version:0:3}" == "v11" ]]; then
+        echo "Version is v11. Need to check further."
+    else
+        echo "Version is not v11."
+    fi
+}
 
-db2level | awk '/Version/ {print $4}'
+# Call the function
+check_db2_version
