@@ -1,12 +1,18 @@
-check_db2_version() {
-    db2_version=$(db2level | grep "DB2 v" | awk '{print $5}' | sed 's/..$//')
+create_files() {
+    sid="$1"
+    timestamp=$(date +"%Y%m%d%H%M%S")
+    current_time=$(date +"%s")
+    target_time=$(date -d "$timestamp" +"%s")
 
-    if [[ "${db2_version:0:3}" == "v11" ]]; then
-        echo "Version is v11. Need to check further."
+    if [ "$current_time" -lt "$target_time" ]; then
+        touch "${sid}_Before_${timestamp}.txt"
+        touch "LogFile_${timestamp}.txt"
+        echo "Files created."
     else
-        echo "Version is not v11."
+        echo "Current time is not before the specified timestamp."
     fi
 }
 
-# Call the function
-check_db2_version
+# Call the function and pass the $3sid parameter
+create_files "$3sid"
+
