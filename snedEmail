@@ -1,0 +1,28 @@
+#!/bin/bash
+
+# Check if the correct number of arguments are provided
+if [ "$#" -ne 1 ]; then
+  echo "Usage: $0 <notepad_entry_file>"
+  exit 1
+fi
+
+# Read the notepad entry file from the command line argument
+notepad_entry_file="$1"
+
+# Loop through each line in the notepad entry file
+while IFS=$'\t' read -r identifier email; do
+  # Search for files with the identifier (e.g., GXD) in the filename
+  matching_files=($(find /path/to/files -type f -name "*$identifier*"))
+
+  # Check if matching files were found
+  if [ ${#matching_files[@]} -gt 0 ]; then
+    # Send each matching file to the respective email address
+    for file in "${matching_files[@]}"; do
+      # Send an email with the subject "CIS DB2 Checks"
+      sendmail -s "CIS DB2 Checks" "$email" < "$file"
+      echo "Sent file $file to $email with subject 'CIS DB2 Checks'"
+    done
+  else
+    echo "No matching files found for identifier $identifier"
+  fi
+done < "$notepad_entry_file"
